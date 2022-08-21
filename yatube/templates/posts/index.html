@@ -1,0 +1,31 @@
+{%  extends 'base.html'  %}
+
+{% load cache %}
+{% load cache_update %}
+{% load thumbnail %}
+{%  block title  %}
+  {% autoescape on %}
+    Последние обновления на сайте
+  {% endautoescape %}
+{%  endblock  %}
+
+{%  block content  %}
+<div class="container py-5">
+  <h1>
+    {% autoescape on %}
+      Последние обновления на сайте
+    {% endautoescape %}
+  </h1>
+  {%  cache 20 index_page  %}
+
+  {% include 'posts/includes/switcher.html' %}
+
+  {%  for post in page_obj  %}
+  {% include 'posts/includes/detailed_information.html' %}
+  {% if not forloop.last %}<hr>{% endif %}
+  {% endfor %}
+  {% include 'posts/includes/paginator.html' %}
+  {% endcache %}
+</div>
+
+{%  endblock  %}

@@ -1,0 +1,27 @@
+{%  extends 'base.html'  %}
+
+{% load thumbnail %}
+{% load static %}
+{%  block title  %}
+  {% autoescape on %}
+    Записи сообщества {{ group.title }}
+  {% endautoescape %}
+{%  endblock  %}
+{%  block content  %}
+  <div class="container py-5"
+    href="{% url 'posts:group_list' group.slug %}">
+    <div style="float:left; padding-right:30px;">
+    </div>
+    <h1>
+      {% autoescape on %}
+        {{ group.title }}
+      {% endautoescape %}
+    </h1>
+      <p>{{ group.description }}</p>
+      {%  for post in page_obj  %}
+      {% include 'posts/includes/detailed_information.html' %}
+      {%  if not forloop.last %}<hr>{% endif %}
+      {% endfor %}
+      {% include 'posts/includes/paginator.html' %}
+  </div>
+{%  endblock  %}
