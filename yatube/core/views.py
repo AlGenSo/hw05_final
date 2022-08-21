@@ -8,6 +8,7 @@ def page_not_found(request, exception):
         {'path': request.path}, status=404
     )
 
+
 def server_error(request):
     return render(request, 'core/500.html', status=500)
 
