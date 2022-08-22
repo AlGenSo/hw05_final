@@ -1,7 +1,6 @@
 from django.views.decorators.cache import cache_page
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-from requests import post
 
 from .models import Follow, Post, Group, User
 from .utils import pagination
@@ -64,7 +63,7 @@ def post_detail(request, post_id):
     '''Страница для просмотра отдельного поста.'''
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, pk=post_id)
-    form = CommentForm()
+    form = CommentForm(request.POST or None)
     comments = post.comments.all()
     context = {
         'post': post,
@@ -121,6 +120,7 @@ def edit(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
