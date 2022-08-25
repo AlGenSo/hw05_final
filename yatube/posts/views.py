@@ -100,7 +100,7 @@ def edit(request, post_id):
     form = PostForm(
         request.POST or None,
         files=request.FILES or None,
-        instance=post
+        instance=post,
     )
     if request.method == 'POST' and form.is_valid():
         post = form.save(commit=False)
@@ -108,8 +108,6 @@ def edit(request, post_id):
         form.save()
 
         return redirect(template, post_id=post_id)
-
-    form = PostForm(instance=post)
 
     return render(
         request,
@@ -155,7 +153,6 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     author = get_object_or_404(User, username=username)
-    if request.user != author:
-        Follow.objects.filter(user=request.user, author=author).delete()
+    Follow.objects.filter(user=request.user, author=author).delete()
 
     return redirect('posts:profile', username=username)

@@ -1,7 +1,6 @@
 {%  extends 'base.html'  %}
 
 {% load user_filters %}
-{% load thumbnail %}
 {% load static %}
 {%  block title  %}
   {% autoescape on %}
@@ -9,6 +8,7 @@
   {% endautoescape %}
 {%  endblock  %}
 {%  block content  %}
+{% load thumbnail %}
 <div class="container py-5">
 <div class="row">
 <aside class="col-12 col-md-3">
@@ -31,21 +31,14 @@
           list-group-item d-flex
           justify-content-between
           align-items-center">
-          Автор:
-            <span >
-              {{ post.author.get_full_name }}
-            </span>
+          Автор: {{ post.author.get_full_name }}
         </li>
         <li class="
           list-group-item d-flex
           justify-content-between
-          align-items-center"
-        >
-        Всего постов автора:
-          <span >
-            {{ author.posts.all.count }}
-          </span>
-    </li>
+          align-items-center">
+          Всего постов автора: {{ author.posts.all.count }}
+        </li>
     <li class="list-group-item">
         <a href="{% url 'posts:profile' post.author.username %}">
         все посты пользователя
@@ -55,6 +48,9 @@
 </aside>
 <article class="col-12 col-md-9">
     <p>
+      {% thumbnail post.image "3543x2126" crop="center" upscale=True as im %}
+        <img class="card-img my-2" src="{{ im.url }}">
+      {% endthumbnail %}
       {{ post.text|linebreaks }}
       <div class="d-flex justify-content-end">
         {% if user == post.author %}

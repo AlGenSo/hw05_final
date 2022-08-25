@@ -5,7 +5,8 @@ def page_not_found(request, exception):
     return render(
         request,
         'core/404.html',
-        {'path': request.path}, status=404
+        {'path': request.path},
+        status=404
     )
 
 

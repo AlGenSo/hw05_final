@@ -1,4 +1,5 @@
-{% load static %}
+{% load thumbnail %}
+
 <article>
   <ul>
   <li>
@@ -10,8 +11,9 @@
   <li>
     Дата публикации: {{ post.pub_date|date:"d E Y" }}
   </li>
-  <img src="{% static 'img/LNT.png' %}"
-  width="260" height="339" alt="">
+    {% thumbnail post.image "3543x2126" crop="center" upscale=True as im %}
+      <img class="card-img my-2" src="{{ im.url }}">
+    {% endthumbnail %}
   </ul>
   <p>
     {{ post.text|linebreaks }}

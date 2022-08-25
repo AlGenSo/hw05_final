@@ -1,12 +1,11 @@
 {%  extends 'base.html'  %}
 
-{% load thumbnail %}
 {% load static %}
 {%  block title  %}
   {% autoescape on %}
     Профайл пользователя
     {% if post.author.get_full_name %}
-      {{ .post.author.get_full_name }}
+      {{ author.get_full_name }}
     {% else %}
       {{ author.username }}
     {% endif %}
@@ -14,35 +13,45 @@
 {%  endblock  %}
 
 {%  block content  %}
+{% load thumbnail %}
 
-<div class="mb-5">
-  <h1>
-    Все посты пользователя: {{ author.get_full_name }}
-  </h1>
-  <h3>Всего постов: {{ author.posts.all.count }}</h3>
+<div class="card bg-light" style="width: 100%">
+  <div class="card-body">
+    <div class="mb-5">
+      <h2>
+        Все посты пользователя: {{ author.get_full_name }}
+      </h2>
+      <h4>Всего постов: {{ author.posts.all.count }}</h4>
+      <h4>Всего подписок: {{ author.following.count }}</h4>
+      <h4>Подписан: {{ author.follower.count }}</h4>
 
-  {% if following %}
-    <a
-      class="btn btn-lg btn-light"
-      href="{% url 'posts:profile_unfollow' author.username %}" role="button"
-    >
-      Отписаться
-    </a>
-  {% else %}
-      <a
-        class="btn btn-lg btn-primary"
-        href="{% url 'posts:profile_follow' author.username %}" role="button"
-      >
-        Подписаться
-      </a>
-   {% endif %}
+      {% if user.is_authenticated %}
+        {% if request.user != author %}
+          {% if following %}
+            <a
+              class="btn btn-lg btn-light"
+              href="{% url 'posts:profile_unfollow' author.username %}" role="button"
+            >
+              Отписаться
+            </a>
+          {% else %}
+              <a
+                class="btn btn-lg btn-primary"
+                href="{% url 'posts:profile_follow' author.username %}" role="button"
+              >
+                Подписаться
+              </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
 
-  {% for post in page_obj %}
-  {% include 'posts/includes/detailed_information.html' %}
-  {% if not forloop.last %}<hr>{% endif %}
-  {% endfor %}
-  {% include 'posts/includes/paginator.html' %}
+      {% for post in page_obj %}
+      {% include 'posts/includes/detailed_information.html' %}
+      {% if not forloop.last %}<hr>{% endif %}
+      {% endfor %}
+      {% include 'posts/includes/paginator.html' %}
+    </div>
+  </div>  
 </div>
-
 {%  endblock  %}
  

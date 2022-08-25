@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.conf import settings
 
-from posts.models import Post, Group, User
+from posts.models import Post, Group, Comment, User
 from posts.forms import PostForm
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -45,6 +45,14 @@ class FormPostTests(TestCase):
         '''Валидная форма создает запись в Post
         авторизованным пользователем'''
         posts_count = Post.objects.count()
+        posts_before = set(Post.objects.all())
+
+        Post.objects.create(
+            author=self.user,
+            text='Текст создаваемого поста',
+            group=self.group,
+        )
+
         small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
@@ -63,10 +71,14 @@ class FormPostTests(TestCase):
             'group': self.group.id,
             'image': uploaded,
         }
+
+        posts_after = set(Post.objects.all())
+        posts_last = (posts_after - posts_before).pop()
+
         response = self.authorized_client.post(
             reverse('posts:post_create'), data=form_post, follow=True,
         )
-        post = Post.objects.first()
+        # post = Post.objects.first()
         self.assertRedirects(
             response,
             reverse(
@@ -74,10 +86,10 @@ class FormPostTests(TestCase):
                 kwargs={'username': self.user.username}
             )
         )
-        self.assertEqual(Post.objects.count(), posts_count + 1)
-        self.assertEqual(post.text, form_post['text'])
-        self.assertEqual(post.group.id, form_post['group'])
-        self.assertEqual(post.author, self.user)
+        self.assertEqual(Post.objects.count(), posts_count + 2)
+        self.assertEqual(posts_last.text, form_post['text'])
+        self.assertEqual(posts_last.group.id, form_post['group'])
+        self.assertEqual(posts_last.author, self.user)
 
     def test_an_authorized_user_can_edit_the_post(self):
         '''При отправке валидной формы авторизованным пользователем
@@ -106,4 +118,113 @@ class FormPostTests(TestCase):
                 text=form_post['text'],
                 group=self.group.id,
             ).exists()
+        )
+
+
+class StaticCommentTest(TestCase):
+    '''Класс для тестирования комментариев'''
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='commentator')
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='tests-slug',
+            description='Тестовое описание',
+        )
+        cls.post = Post.objects.create(
+            author=cls.user,
+            group=cls.group,
+            text='Тестовый пост',
+        )
+
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='не читал, но осуждаю!',
+        )
+
+    def setUp(self):
+        self.guest = User.objects.create_user(username='HasNoName')
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.guest)
+
+        self.user = User.objects.get(username='commentator')
+        self.author_client = Client()
+        self.author_client.force_login(self.user)
+
+    def test_comment_add_authorized_client(self):
+        '''для авторизованного пользователя:
+           комментарий появляется на странице поста
+           пользователь перенаправляется обратно на страницу posts:post_detail.
+           Проверка корректности полей формы.
+        '''
+
+        Comment.objects.create(
+            post=self.post,
+            author=self.guest,
+            text='себе свой совет посоветуй',
+        )
+
+        comment_count = Comment.objects.count()
+        comment_before = set(Comment.objects.all())
+
+        comment_2 = Comment.objects.create(
+            post=self.post,
+            author=self.user,
+            text='читал, осуждаю!',
+        )
+
+        comment_count_add = Comment.objects.count()
+        comment_after = set(Comment.objects.all())
+
+        last_comment = (comment_after - comment_before).pop()
+
+        form_fields = {
+            'author': self.user,
+            'text': comment_2.text,
+            'post_id': self.post.id,
+        }
+        response = self.author_client.get(
+            reverse('posts:add_comment',
+                    kwargs={'post_id': self.post.id}
+                    ),
+            data=form_fields,
+            follow=True
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                ('posts:post_detail'),
+                kwargs={'post_id': self.post.id}
+            )
+        )
+
+        self.assertEqual(
+            comment_count_add,
+            comment_count + 1,
+        )
+
+        self.assertTrue(
+            Comment.objects.filter(
+                author=self.user,
+                text=last_comment.text,
+                post_id=self.post.id,
+            ).exists()
+        )
+
+    def test_adding_an_unauthorized_users_comment(self):
+        '''для не авторизованного пользователя:
+           Перенаправление на страницу авторизации
+           при попытке оставить коммент.
+        '''
+        response = self.client.get(
+            f'/posts/{self.post.id}/comment/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            f'/auth/login/?next=/posts/{self.post.id}/comment/'
         )
