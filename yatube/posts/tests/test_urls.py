@@ -26,7 +26,7 @@ class StaticURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest = User.objects.create_user(username='HasNoName')
+        self.guest = User.objects.create_user(username='user')
         self.authorized_client = Client()
         self.authorized_client.force_login(self.guest)
         self.user = User.objects.get(username='auth')

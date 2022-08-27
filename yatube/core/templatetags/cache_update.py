@@ -1,7 +1,6 @@
-from atexit import register
-from posts.constants import CACHE_UPDATE
-
 from django import template
+
+from posts.constants import CACHE_UPDATE
 
 register = template.Library()
 

@@ -31,7 +31,7 @@ urlpatterns = [
         name='post_create',
     ),
     path(
-        'posts/<post_id>/edit/',
+        'posts/<int:post_id>/edit/',
         views.edit,
         name='edit',
     ),

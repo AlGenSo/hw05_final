@@ -78,7 +78,8 @@ def post_detail(request, post_id):
 def post_create(request):
     '''Страница для публикации постов'''
     template = 'posts/post_create.html'
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None,
+                    files=request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         post = form.save(commit=False)
         post.author = request.user

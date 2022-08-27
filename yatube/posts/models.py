@@ -90,7 +90,7 @@ class Comment(models.Model):
     )
 
     class Meta:
-        ordering = ['-created']
+        ordering = ('-created',)
 
     def __str__(self) -> str:
         return self.text
