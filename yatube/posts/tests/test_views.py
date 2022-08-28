@@ -433,7 +433,7 @@ class StaticFollowTest(TestCase):
 
         self.assertEqual(count_follows, 0)
 
-        response = self.authorized_client.get(
+        self.authorized_client.get(
             reverse(
                 'posts:profile_follow',
                 kwargs={'username': self.author}
@@ -442,11 +442,10 @@ class StaticFollowTest(TestCase):
 
         self.assertEqual(Follow.objects.count(), count_follows + 1)
         self.assertTrue(
-            response,
             Follow.objects.filter(
                 user=self.user,
                 author=self.author,
-            )
+            ).exists()
         )
 
     def test_a_new_post_in_the_subscribers_feed(self):

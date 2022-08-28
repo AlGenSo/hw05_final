@@ -44,7 +44,6 @@ class FormPostTests(TestCase):
     def test_an_authorized_user_can_create_a_post(self):
         '''Валидная форма создает запись в Post
         авторизованным пользователем'''
-        posts_count = Post.objects.count()
         posts_before = set(Post.objects.all())
 
         small_gif = (
@@ -71,7 +70,6 @@ class FormPostTests(TestCase):
         )
 
         posts_after = set(Post.objects.all())
-        self.assertEqual(Post.objects.count() - posts_count, 1)
 
         posts_last = (posts_after - posts_before).pop()
 
@@ -82,7 +80,7 @@ class FormPostTests(TestCase):
                 kwargs={'username': self.user.username}
             )
         )
-        self.assertEqual(Post.objects.count(), posts_count + 1)
+        self.assertEqual(len(posts_after) - len(posts_before), 1)
         self.assertEqual(posts_last.text, form_post['text'])
         self.assertEqual(posts_last.group.id, form_post['group'])
         self.assertEqual(posts_last.image.name, 'posts/small.gif')
@@ -136,9 +134,7 @@ class StaticCommentTest(TestCase):
             group=cls.group,
             text='Тестовый пост',
         )
-        '''
 
-        '''
         cls.comment = Comment.objects.create(
             post=cls.post,
             author=cls.user_comm,
@@ -159,13 +155,10 @@ class StaticCommentTest(TestCase):
            Проверка корректности полей формы.
         '''
 
-        comment_count = Comment.objects.count()
         comment_before = set(Comment.objects.all())
 
         form_fields = {
-            'author': self.user_comm,
             'text': Comment.text,
-            'post_id': self.post.id,
         }
         response = self.authorized_client.post(
             reverse('posts:add_comment',
@@ -175,10 +168,9 @@ class StaticCommentTest(TestCase):
             follow=True
         )
 
-        comment_count_add = Comment.objects.count()
         comment_after = set(Comment.objects.all())
 
-        self.assertEqual(Comment.objects.count() - comment_count, 1)
+        self.assertEqual(len(comment_after) - len(comment_before), 1)
 
         last_comment = (comment_after - comment_before).pop()
 
@@ -191,13 +183,13 @@ class StaticCommentTest(TestCase):
         )
 
         self.assertEqual(
-            comment_count_add,
-            comment_count + 1,
+            len(comment_after),
+            len(comment_before) + 1,
         )
 
         self.assertEqual(last_comment.author, self.user_comm)
         self.assertEqual(last_comment.text, str(form_fields['text']))
-        self.assertEqual(last_comment.post.id, form_fields['post_id'])
+        self.assertEqual(last_comment.post.id, self.post.id)
 
     def test_adding_an_unauthorized_users_comment(self):
         '''для не авторизованного пользователя:
