@@ -71,9 +71,9 @@ class FormPostTests(TestCase):
         )
 
         posts_after = set(Post.objects.all())
-        posts_last = (posts_after - posts_before).pop()
-
         self.assertEqual(Post.objects.count() - posts_count, 1)
+
+        posts_last = (posts_after - posts_before).pop()
 
         self.assertRedirects(
             response,
@@ -124,32 +124,33 @@ class StaticCommentTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='commentator')
+        cls.author_post = User.objects.create_user(username='author')
+        cls.user_comm = User.objects.create_user(username='commentator')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='tests-slug',
             description='Тестовое описание',
         )
         cls.post = Post.objects.create(
-            author=cls.user,
+            author=cls.author_post,
             group=cls.group,
             text='Тестовый пост',
         )
+        '''
 
+        '''
         cls.comment = Comment.objects.create(
             post=cls.post,
-            author=cls.user,
+            author=cls.user_comm,
             text='не читал, но осуждаю!',
         )
 
     def setUp(self):
-        self.guest = User.objects.create_user(username='user')
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.guest)
+        self.authorized_client.force_login(self.user_comm)
 
-        self.user = User.objects.get(username='commentator')
         self.author_client = Client()
-        self.author_client.force_login(self.user)
+        self.author_client.force_login(self.author_post)
 
     def test_comment_add_authorized_client(self):
         '''для авторизованного пользователя:
@@ -161,18 +162,12 @@ class StaticCommentTest(TestCase):
         comment_count = Comment.objects.count()
         comment_before = set(Comment.objects.all())
 
-        comment_2 = Comment.objects.create(
-            post=self.post,
-            author=self.guest,
-            text='себе свой совет посоветуй',
-        )
-
         form_fields = {
-            'author': self.guest,
-            'text': comment_2.text,
-            'post_id': comment_2.post.id,
+            'author': self.user_comm,
+            'text': Comment.text,
+            'post_id': self.post.id,
         }
-        response = self.author_client.get(
+        response = self.authorized_client.post(
             reverse('posts:add_comment',
                     kwargs={'post_id': self.post.id}
                     ),
@@ -183,9 +178,9 @@ class StaticCommentTest(TestCase):
         comment_count_add = Comment.objects.count()
         comment_after = set(Comment.objects.all())
 
-        last_comment = (comment_after - comment_before).pop()
-
         self.assertEqual(Comment.objects.count() - comment_count, 1)
+
+        last_comment = (comment_after - comment_before).pop()
 
         self.assertRedirects(
             response,
@@ -200,8 +195,8 @@ class StaticCommentTest(TestCase):
             comment_count + 1,
         )
 
-        self.assertEqual(last_comment.author, self.guest)
-        self.assertEqual(last_comment.text, form_fields['text'])
+        self.assertEqual(last_comment.author, self.user_comm)
+        self.assertEqual(last_comment.text, str(form_fields['text']))
         self.assertEqual(last_comment.post.id, form_fields['post_id'])
 
     def test_adding_an_unauthorized_users_comment(self):

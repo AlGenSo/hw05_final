@@ -15,8 +15,8 @@ class StaticURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
-        cls.guest = User.objects.create_user(username='user')
+        cls.author = User.objects.create_user(username='auth')
+        cls.user = User.objects.create_user(username='user')
 
         cls.group = Group.objects.create(
             title='Тестовая группа',
@@ -29,28 +29,26 @@ class StaticURLTests(TestCase):
             description='Тестовое описание',
         )
         cls.post = Post.objects.create(
-            author=cls.user,
+            author=cls.author,
             text='Тестовая пост',
             group=cls.group,
         )
         cls.follow = Follow.objects.create(
-            author=cls.user,
-            user=cls.guest,
+            author=cls.author,
+            user=cls.user,
         )
 
     def setUp(self):
-        self.guest = User.objects.get(username='user')
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.guest)
+        self.authorized_client.force_login(self.user)
 
-        self.user = User.objects.get(username='auth')
         self.author_client = Client()
-        self.author_client.force_login(self.user)
+        self.author_client.force_login(self.author)
 
         cache.clear()
 
     def post_test_context(self, option, post, url):
-
+        '''Проверка контекста поста'''
         response = self.authorized_client.get(url)
         if option:
             post_in_response = response.context['post']
@@ -100,8 +98,7 @@ class StaticURLTests(TestCase):
     def test_post_page_show_correct_context(self):
         '''В шаблон передан правильный контекст index'''
         url = reverse('posts:index')
-        option = False
-        return self.post_test_context(option, self.post, url)
+        return self.post_test_context(False, self.post, url)
 
     def test_group_list_page_show_correct_context(self):
         '''В шаблон передан правильный контекст group_list'''
@@ -117,9 +114,7 @@ class StaticURLTests(TestCase):
             'posts:group_list',
             kwargs={'slug': f'{self.group.slug}'})
 
-        option = False
-
-        return self.post_test_context(option, self.post, url)
+        return self.post_test_context(False, self.post, url)
 
     def test_profile_page_show_correct_context(self):
         '''В шаблон передан правильный контекст profile'''
@@ -130,9 +125,9 @@ class StaticURLTests(TestCase):
         author = response.context['author']
         following = response.context['following']
 
-        post_atr = {author: self.user,
-                    following: True}
-        for value, expected in post_atr.items():
+        post_context = {author: self.author,
+                        following: True}
+        for value, expected in post_context.items():
             with self.subTest(value=value):
                 self.assertEqual(value, expected)
 
@@ -140,16 +135,14 @@ class StaticURLTests(TestCase):
             'posts:profile',
             kwargs={'username': self.post.author})
 
-        option = False
-
-        return self.post_test_context(option, self.post, url)
+        return self.post_test_context(False, self.post, url)
 
     def test_post_detail_show_correct_context(self):
         '''В шаблон передан правильный контекст post_detail'''
 
         commentic = Comment.objects.create(
             post=self.post,
-            author=self.guest,
+            author=self.user,
             text='себе свой совет посоветуй',
         )
 
@@ -163,9 +156,7 @@ class StaticURLTests(TestCase):
             'posts:post_detail',
             kwargs={'post_id': self.post.id})
 
-        option = True
-
-        return self.post_test_context(option, self.post, url)
+        return self.post_test_context(True, self.post, url)
 
     def test_post_create_show_correct_context(self):
         '''В шаблон передан правильный контекст post_create'''
@@ -201,7 +192,7 @@ class StaticURLTests(TestCase):
         project_pages = [
             reverse('posts:index'),
             reverse('posts:group_list', kwargs={'slug': self.group.slug}),
-            reverse('posts:profile', kwargs={'username': self.user}),
+            reverse('posts:profile', kwargs={'username': self.author}),
         ]
         for address in project_pages:
             with self.subTest(adress=address):
@@ -229,7 +220,8 @@ class PaginatorViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='author')
+        cls.author = User.objects.create_user(username='author')
+        cls.user = User.objects.create_user(username='user')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='testos-slug',
@@ -239,7 +231,7 @@ class PaginatorViewsTest(TestCase):
         for i in range(COUNT_POSTS_LIMIT_1 + COUNT_POSTS_LIMIT_2):
             heap_of_posts.append(
                 Post(
-                    author=cls.user,
+                    author=cls.author,
                     text=f'{i} тестовый текст',
                     group=cls.group,
                 )
@@ -247,12 +239,12 @@ class PaginatorViewsTest(TestCase):
         Post.objects.bulk_create(heap_of_posts)
 
     def setUp(self):
-        self.guest = User.objects.create_user(username='user')
+
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.guest)
-        self.user = User.objects.get(username='author')
+        self.authorized_client.force_login(self.user)
+
         self.author_client = Client()
-        self.author_client.force_login(self.user)
+        self.author_client.force_login(self.author)
 
         cache.clear()
 
@@ -271,7 +263,7 @@ class PaginatorViewsTest(TestCase):
                 reverse('posts:group_list', kwargs={'slug': self.group.slug})
             ),
             self.authorized_client.get(
-                reverse('posts:profile', kwargs={'username': self.user})
+                reverse('posts:profile', kwargs={'username': self.author})
             ),
         ]
 
@@ -302,7 +294,7 @@ class PaginatorViewsTest(TestCase):
                 + '?page=2'
             ),
             self.authorized_client.get(
-                reverse('posts:profile', kwargs={'username': self.user})
+                reverse('posts:profile', kwargs={'username': self.author})
                 + '?page=2'
             )
         ]
@@ -339,11 +331,9 @@ class StaticCacheTest(TestCase):
         )
 
     def setUp(self):
-        self.author = User.objects.get(username='Author')
         self.author_client = Client()
         self.author_client.force_login(self.author)
 
-        self.user = User.objects.get(username='User')
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
@@ -406,8 +396,6 @@ class StaticFollowTest(TestCase):
         self.author_client = Client()
         self.author_client.force_login(self.author)
 
-        self.followers = self.user.follower.count()
-
     def test_subscription_of_an_unauthorized_user(self):
         '''для не авторизованного пользователя:
            Перенаправление на страницу авторизации
@@ -436,21 +424,14 @@ class StaticFollowTest(TestCase):
         подписывается,
         подписка появляется'''
 
-        self.follow = Follow.objects.filter(
+        Follow.objects.filter(
             user=self.user,
             author=self.author,
         ).delete()
 
         count_follows = Follow.objects.count()
 
-        response = self.authorized_client.get(
-            reverse(
-                'posts:follow_index',
-            )
-        )
-        self.assertNotContains(response, self.follow)
         self.assertEqual(count_follows, 0)
-        follows_before = set(Follow.objects.all())
 
         response = self.authorized_client.get(
             reverse(
@@ -459,13 +440,16 @@ class StaticFollowTest(TestCase):
             )
         )
 
-        self.assertEqual(Follow.objects.count() - count_follows, 1)
-        follows_after = set(Follow.objects.all())
-        last_follow = (follows_after - follows_before).pop()
+        self.assertEqual(Follow.objects.count(), count_follows + 1)
+        self.assertTrue(
+            response,
+            Follow.objects.filter(
+                user=self.user,
+                author=self.author,
+            )
+        )
 
-        self.assertEqual(last_follow.author, self.author)
-
-    def test_A_new_post_in_the_subscribers_feed(self):
+    def test_a_new_post_in_the_subscribers_feed(self):
         '''Новая запись пользователя
         появляется в ленте тех, кто на него подписан'''
         response = self.authorized_client.get(
@@ -473,16 +457,13 @@ class StaticFollowTest(TestCase):
                 'posts:follow_index',
             )
         )
-        self.assertIn(
+
+        self.assertEqual(
+            self.post,
             response.context['page_obj'].object_list[0],
-            Post.objects.filter(
-                author=self.author,
-                group=self.group,
-                text=self.post.text,
-            )
         )
 
-    def test_The_new_entry_is_not_displayed_in_the_feed_of_the_unsigned(self):
+    def test_the_new_entry_is_not_displayed_in_the_feed_of_the_unsigned(self):
         '''Новая запись пользователя
         не появляется в ленте тех, кто на него подписан'''
         Follow.objects.filter(

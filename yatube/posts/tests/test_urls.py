@@ -13,25 +13,26 @@ class StaticURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
+        cls.author = User.objects.create_user(username='auth')
+        cls.user = User.objects.create_user(username='user')
         cls.group = Group.objects.create(
             title='ТЕстовая группа',
             slug='test-slug',
             description='Тестовое описание',
         )
         cls.post = Post.objects.create(
-            author=cls.user,
+            author=cls.author,
             text='Тестовая пост',
             group=cls.group,
         )
 
     def setUp(self):
-        self.guest = User.objects.create_user(username='user')
+
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.guest)
-        self.user = User.objects.get(username='auth')
+        self.authorized_client.force_login(self.user)
+
         self.author_client = Client()
-        self.author_client.force_login(self.user)
+        self.author_client.force_login(self.author)
 
         cache.clear()
 
